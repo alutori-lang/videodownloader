@@ -4,12 +4,15 @@ import 'package:open_filex/open_filex.dart';
 import 'package:share_plus/share_plus.dart';
 import '../providers/download_provider.dart';
 import '../models/download_item.dart';
+import '../l10n/app_localizations.dart';
 
 class DownloadsScreen extends StatelessWidget {
   const DownloadsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -20,9 +23,9 @@ class DownloadsScreen extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'I Miei Download',
-                    style: TextStyle(
+                  Text(
+                    l10n.downloads,
+                    style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w700,
                       color: Color(0xFFEA580C),
@@ -65,21 +68,21 @@ class DownloadsScreen extends StatelessWidget {
                           Icon(
                             Icons.download_rounded,
                             size: 80,
-                            color: const Color(0xFFEA580C).withValues(alpha: 0.3),
+                            color: const Color(0xFFEA580C).withOpacity(0.3),
                           ),
                           const SizedBox(height: 20),
-                          const Text(
-                            'Nessun download',
-                            style: TextStyle(
+                          Text(
+                            l10n.noDownloads,
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
                               color: Color(0xFF999999),
                             ),
                           ),
                           const SizedBox(height: 8),
-                          const Text(
-                            'I tuoi download appariranno qui',
-                            style: TextStyle(
+                          Text(
+                            l10n.startDownloading,
+                            style: const TextStyle(
                               fontSize: 14,
                               color: Color(0xFFBBBBBB),
                             ),
@@ -129,7 +132,7 @@ class _DownloadItemCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),

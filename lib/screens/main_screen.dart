@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'home_screen.dart';
 import 'downloads_screen.dart';
 import 'settings_screen.dart';
+import '../l10n/app_localizations.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -21,6 +22,8 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
       body: _screens[_currentIndex],
       bottomNavigationBar: Container(
@@ -37,18 +40,18 @@ class _MainScreenState extends State<MainScreen> {
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
           onTap: (index) => setState(() => _currentIndex = index),
-          items: const [
+          items: [
             BottomNavigationBarItem(
-              icon: Icon(Icons.home_rounded),
-              label: 'Home',
+              icon: const Icon(Icons.home_rounded),
+              label: l10n.home,
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.folder_rounded),
-              label: 'Downloads',
+              icon: const Icon(Icons.folder_rounded),
+              label: l10n.downloads,
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.settings_rounded),
-              label: 'Settings',
+              icon: const Icon(Icons.settings_rounded),
+              label: l10n.settings,
             ),
           ],
         ),

@@ -3,6 +3,7 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:provider/provider.dart';
 import '../providers/download_provider.dart';
 import '../widgets/download_popup.dart';
+import '../l10n/app_localizations.dart';
 
 class BrowserScreen extends StatefulWidget {
   final String initialUrl;
@@ -78,12 +79,14 @@ class _BrowserScreenState extends State<BrowserScreen> {
   }
 
   void _showDownloadPopup() {
+    final l10n = AppLocalizations.of(context);
+
     // Controlla se siamo su una pagina video specifica
     if (!_isVideoUrl(_currentUrl)) {
       // Mostra messaggio di aiuto
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('📌 Vai su un video specifico per scaricarlo'),
+          content: Text('📌 ${l10n.goToVideo}'),
           backgroundColor: const Color(0xFFEA580C),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -113,12 +116,13 @@ class _BrowserScreenState extends State<BrowserScreen> {
   }
 
   void _startDownload(String format, String quality) {
+    final l10n = AppLocalizations.of(context);
     final provider = Provider.of<DownloadProvider>(context, listen: false);
 
     // Mostra snackbar
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Download avviato: $_pageTitle'),
+        content: Text('${l10n.downloadStarted}: $_pageTitle'),
         backgroundColor: const Color(0xFFEA580C),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 
 class DownloadPopup extends StatefulWidget {
   final String url;
@@ -24,14 +25,14 @@ class _DownloadPopupState extends State<DownloadPopup> {
   String _selectedQuality = '1080p';
 
   final List<Map<String, dynamic>> _videoFormats = [
-    {'quality': '1080p', 'format': 'mp4', 'size': '45 MB', 'desc': 'Full HD • Video + Audio'},
-    {'quality': '720p', 'format': 'mp4', 'size': '28 MB', 'desc': 'HD • Video + Audio'},
-    {'quality': '480p', 'format': 'mp4', 'size': '15 MB', 'desc': 'SD • Video + Audio'},
+    {'quality': '1080p', 'format': 'mp4', 'size': '~45 MB', 'desc': 'Full HD'},
+    {'quality': '720p', 'format': 'mp4', 'size': '~28 MB', 'desc': 'HD'},
+    {'quality': '480p', 'format': 'mp4', 'size': '~15 MB', 'desc': 'SD'},
   ];
 
   final List<Map<String, dynamic>> _audioFormats = [
-    {'quality': '320kbps', 'format': 'mp3', 'size': '8 MB', 'desc': 'Alta qualità audio'},
-    {'quality': '128kbps', 'format': 'mp3', 'size': '3 MB', 'desc': 'Qualità standard'},
+    {'quality': '320kbps', 'format': 'mp3', 'size': '~8 MB', 'desc': 'High quality'},
+    {'quality': '128kbps', 'format': 'mp3', 'size': '~3 MB', 'desc': 'Standard'},
   ];
 
   @override
@@ -65,6 +66,8 @@ class _DownloadPopupState extends State<DownloadPopup> {
   }
 
   Widget _buildActionSelector() {
+    final l10n = AppLocalizations.of(context);
+
     return Column(
       children: [
         // Video Thumbnail
@@ -101,9 +104,9 @@ class _DownloadPopupState extends State<DownloadPopup> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    'Video rilevato',
-                    style: TextStyle(
+                  Text(
+                    '${l10n.video} detected',
+                    style: const TextStyle(
                       fontSize: 12,
                       color: Color(0xFF888888),
                     ),
@@ -118,8 +121,8 @@ class _DownloadPopupState extends State<DownloadPopup> {
         // Play Option
         _buildOptionButton(
           icon: Icons.play_circle_rounded,
-          title: 'Play Video',
-          subtitle: 'Guarda nel player interno',
+          title: l10n.play,
+          subtitle: 'Watch in player',
           isDownload: false,
           onTap: widget.onPlay,
         ),
@@ -128,8 +131,8 @@ class _DownloadPopupState extends State<DownloadPopup> {
         // Download Option
         _buildOptionButton(
           icon: Icons.download_rounded,
-          title: 'Scarica Video',
-          subtitle: 'Salva sul dispositivo',
+          title: l10n.downloadNow,
+          subtitle: 'Save to device',
           isDownload: true,
           onTap: () => setState(() => _showFormats = true),
         ),
@@ -161,7 +164,7 @@ class _DownloadPopupState extends State<DownloadPopup> {
               height: 48,
               decoration: BoxDecoration(
                 color: isDownload
-                    ? Colors.white.withValues(alpha: 0.2)
+                    ? Colors.white.withOpacity(0.2)
                     : Colors.white,
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -188,7 +191,7 @@ class _DownloadPopupState extends State<DownloadPopup> {
                   style: TextStyle(
                     fontSize: 12,
                     color: isDownload
-                        ? Colors.white.withValues(alpha: 0.8)
+                        ? Colors.white.withOpacity(0.8)
                         : const Color(0xFF888888),
                   ),
                 ),
@@ -201,6 +204,8 @@ class _DownloadPopupState extends State<DownloadPopup> {
   }
 
   Widget _buildFormatSelector() {
+    final l10n = AppLocalizations.of(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -212,9 +217,9 @@ class _DownloadPopupState extends State<DownloadPopup> {
               child: const Icon(Icons.arrow_back_rounded, color: Color(0xFFEA580C)),
             ),
             const SizedBox(width: 12),
-            const Text(
-              'Scegli Formato',
-              style: TextStyle(
+            Text(
+              l10n.format,
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
                 color: Color(0xFF333333),
@@ -225,9 +230,9 @@ class _DownloadPopupState extends State<DownloadPopup> {
         const SizedBox(height: 20),
 
         // Video Formats
-        const Text(
-          'Video',
-          style: TextStyle(
+        Text(
+          l10n.video,
+          style: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
             color: Color(0xFF666666),
@@ -239,9 +244,9 @@ class _DownloadPopupState extends State<DownloadPopup> {
         const SizedBox(height: 20),
 
         // Audio Formats
-        const Text(
-          'Solo Audio',
-          style: TextStyle(
+        Text(
+          l10n.audio,
+          style: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
             color: Color(0xFF666666),
@@ -271,7 +276,7 @@ class _DownloadPopupState extends State<DownloadPopup> {
                 const Icon(Icons.download_rounded),
                 const SizedBox(width: 10),
                 Text(
-                  'SCARICA ${_selectedFormat.toUpperCase()} $_selectedQuality',
+                  '${l10n.download} ${_selectedFormat.toUpperCase()} $_selectedQuality',
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,

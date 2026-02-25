@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'browser_screen.dart';
+import '../l10n/app_localizations.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -56,6 +57,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -67,9 +70,9 @@ class _HomeScreenState extends State<HomeScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'QuickSave',
-                    style: TextStyle(
+                  Text(
+                    l10n.appName,
+                    style: const TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w800,
                       color: Color(0xFFEA580C),
@@ -83,7 +86,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       borderRadius: BorderRadius.circular(14),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFFEA580C).withValues(alpha: 0.15),
+                          color: const Color(0xFFEA580C).withOpacity(0.15),
                           blurRadius: 15,
                           offset: const Offset(0, 4),
                         ),
@@ -113,14 +116,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       style: BorderStyle.solid,
                     ),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.content_paste_rounded, color: Color(0xFFEA580C)),
-                      SizedBox(width: 10),
+                      const Icon(Icons.content_paste_rounded, color: Color(0xFFEA580C)),
+                      const SizedBox(width: 10),
                       Text(
-                        'Incolla URL',
-                        style: TextStyle(
+                        l10n.pasteUrl,
+                        style: const TextStyle(
                           color: Color(0xFFEA580C),
                           fontWeight: FontWeight.w600,
                           fontSize: 15,
@@ -139,7 +142,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
+                      color: Colors.black.withOpacity(0.05),
                       blurRadius: 15,
                       offset: const Offset(0, 4),
                     ),
@@ -148,14 +151,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: TextField(
                   controller: _urlController,
                   textAlign: TextAlign.center,
-                  decoration: const InputDecoration(
-                    hintText: 'Incolla qualsiasi URL del video o MP3...',
-                    hintStyle: TextStyle(
+                  decoration: InputDecoration(
+                    hintText: l10n.urlHint,
+                    hintStyle: const TextStyle(
                       color: Color(0xFF9CA3AF),
                       fontSize: 14,
                     ),
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.all(18),
+                    contentPadding: const EdgeInsets.all(18),
                   ),
                 ),
               ),
@@ -174,16 +177,16 @@ class _HomeScreenState extends State<HomeScreen> {
                       borderRadius: BorderRadius.circular(16),
                     ),
                     elevation: 8,
-                    shadowColor: const Color(0xFFEA580C).withValues(alpha: 0.4),
+                    shadowColor: const Color(0xFFEA580C).withOpacity(0.4),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.download_rounded, size: 24),
-                      SizedBox(width: 10),
+                      const Icon(Icons.download_rounded, size: 24),
+                      const SizedBox(width: 10),
                       Text(
-                        'SCARICA',
-                        style: TextStyle(
+                        l10n.download,
+                        style: const TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w700,
                         ),
@@ -198,11 +201,11 @@ class _HomeScreenState extends State<HomeScreen> {
               Row(
                 children: [
                   Expanded(child: Container(height: 1, color: const Color(0xFFE5E5E5))),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 15),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 15),
                     child: Text(
-                      'oppure',
-                      style: TextStyle(color: Color(0xFF999999), fontSize: 13),
+                      l10n.or,
+                      style: const TextStyle(color: Color(0xFF999999), fontSize: 13),
                     ),
                   ),
                   Expanded(child: Container(height: 1, color: const Color(0xFFE5E5E5))),
@@ -211,10 +214,10 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 25),
 
               // Browse Section Title
-              const Center(
+              Center(
                 child: Text(
-                  'Naviga e scarica direttamente',
-                  style: TextStyle(
+                  l10n.browseAndDownload,
+                  style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF666666),
@@ -223,15 +226,15 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 18),
 
-              // Platforms Grid
+              // Platforms Grid - Fixed overflow with better aspect ratio
               GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 4,
-                  mainAxisSpacing: 14,
-                  crossAxisSpacing: 14,
-                  childAspectRatio: 0.85,
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                  childAspectRatio: 0.75, // Fixed: was 0.85, now more space for text
                 ),
                 itemCount: _platforms.length,
                 itemBuilder: (context, index) {
@@ -239,12 +242,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   return GestureDetector(
                     onTap: () => _openBrowser(platform['url']),
                     child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
+                            color: Colors.black.withOpacity(0.05),
                             blurRadius: 10,
                             offset: const Offset(0, 2),
                           ),
@@ -252,10 +256,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Container(
-                            width: 44,
-                            height: 44,
+                            width: 42,
+                            height: 42,
                             decoration: BoxDecoration(
                               color: platform['color'],
                               borderRadius: BorderRadius.circular(12),
@@ -263,18 +268,22 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: Icon(
                               platform['icon'],
                               color: Colors.white,
-                              size: 24,
+                              size: 22,
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            platform['name'],
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                              color: Color(0xFF666666),
+                          const SizedBox(height: 6),
+                          Flexible(
+                            child: Text(
+                              platform['name'],
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF666666),
+                              ),
+                              textAlign: TextAlign.center,
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
                             ),
-                            textAlign: TextAlign.center,
                           ),
                         ],
                       ),

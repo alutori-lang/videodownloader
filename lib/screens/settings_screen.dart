@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -13,6 +14,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -21,9 +24,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header
-              const Text(
-                'Impostazioni',
-                style: TextStyle(
+              Text(
+                l10n.settings,
+                style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w700,
                   color: Color(0xFFEA580C),
@@ -34,19 +37,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // Settings Items
               _buildSettingItem(
                 icon: Icons.folder_rounded,
-                title: 'Cartella download',
+                title: 'Download folder',
                 subtitle: '/storage/QuickSave',
                 onTap: () {},
               ),
               _buildSettingItem(
                 icon: Icons.high_quality_rounded,
-                title: 'Qualità predefinita',
+                title: l10n.quality,
                 subtitle: _defaultQuality,
                 onTap: () => _showQualityPicker(),
               ),
               _buildSettingToggle(
                 icon: Icons.notifications_rounded,
-                title: 'Notifiche',
+                title: 'Notifications',
                 value: _notifications,
                 onChanged: (value) => setState(() => _notifications = value),
               ),
@@ -82,7 +85,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     const SizedBox(height: 12),
                     const Text(
-                      '✓ Niente pubblicità\n✓ Download illimitati\n✓ Qualità 4K\n✓ Download batch',
+                      '✓ No ads\n✓ Unlimited downloads\n✓ 4K quality\n✓ Batch downloads',
                       style: TextStyle(
                         fontSize: 14,
                         color: Color(0xFF333333),
@@ -103,7 +106,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         ),
                         child: const Text(
-                          'ACQUISTA €3.99',
+                          'BUY €3.99',
                           style: TextStyle(fontWeight: FontWeight.w700),
                         ),
                       ),
@@ -117,19 +120,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // About Section
               _buildSettingItem(
                 icon: Icons.info_outline_rounded,
-                title: 'Versione',
+                title: l10n.version,
                 subtitle: '1.0.0',
                 onTap: () {},
               ),
               _buildSettingItem(
                 icon: Icons.privacy_tip_outlined,
-                title: 'Privacy Policy',
+                title: l10n.privacyPolicy,
                 subtitle: '',
                 onTap: () {},
               ),
               _buildSettingItem(
                 icon: Icons.description_outlined,
-                title: 'Termini di servizio',
+                title: l10n.termsOfService,
                 subtitle: '',
                 onTap: () {},
               ),
@@ -246,6 +249,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showQualityPicker() {
+    final l10n = AppLocalizations.of(context);
+
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -258,9 +263,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Qualità predefinita',
-                style: TextStyle(
+              Text(
+                l10n.quality,
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                 ),
