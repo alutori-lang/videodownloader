@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:provider/provider.dart';
 import '../providers/download_provider.dart';
+import '../models/download_item.dart';
 import '../widgets/download_popup.dart';
 import '../l10n/app_localizations.dart';
 
@@ -158,18 +159,7 @@ class _BrowserScreenState extends State<BrowserScreen> {
   }
 
   void _startDownload(String format, String quality, String videoUrl) {
-    final l10n = AppLocalizations.of(context);
     final provider = Provider.of<DownloadProvider>(context, listen: false);
-
-    // Mostra snackbar
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${l10n.downloadStarted}: $_pageTitle'),
-        backgroundColor: const Color(0xFFEA580C),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
 
     // Converte la qualità nel formato Cobalt (es. "1080p" -> "1080")
     final cobaltQuality = quality.replaceAll('p', '').replaceAll('kbps', '');
@@ -354,6 +344,143 @@ class _BrowserScreenState extends State<BrowserScreen> {
                     ),
                 ],
               ),
+            ),
+
+            // Download Progress Bar
+            Consumer<DownloadProvider>(
+              builder: (context, provider, _) {
+                final activeDownloads = provider.activeDownloads;
+                if (activeDownloads.isEmpty) {
+                  return const SizedBox.shrink();
+                }
+
+                final item = activeDownloads.first;
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFEA580C),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.download_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item.title,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${item.downloadedText} / ${item.fileSizeText}',
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.9),
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            item.progressText,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: item.progress,
+                          backgroundColor: Colors.white.withOpacity(0.3),
+                          valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                          minHeight: 6,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+
+            // Download Completed/Failed Banner
+            Consumer<DownloadProvider>(
+              builder: (context, provider, _) {
+                final downloads = provider.downloads;
+                if (downloads.isEmpty) return const SizedBox.shrink();
+
+                final lastItem = downloads.first;
+                if (lastItem.status == DownloadStatus.completed) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    color: const Color(0xFF22C55E),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.check_circle, color: Colors.white, size: 20),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Download completato: ${lastItem.title}',
+                            style: const TextStyle(color: Colors.white, fontSize: 13),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                } else if (lastItem.status == DownloadStatus.failed) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    color: Colors.red,
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error, color: Colors.white, size: 20),
+                        const SizedBox(width: 10),
+                        const Expanded(
+                          child: Text(
+                            'Download fallito - Server non disponibile',
+                            style: TextStyle(color: Colors.white, fontSize: 13),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () => provider.retryDownload(lastItem.id),
+                          child: const Text(
+                            'Riprova',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
             ),
 
             // Bottom Navigation
