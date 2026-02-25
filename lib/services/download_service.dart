@@ -15,20 +15,22 @@ class DownloadService {
   // Fonte: https://cobalt.directory/
   // ============================================================
 
-  // Lista di istanze Cobalt pubbliche (aggiornata)
+  // Lista di istanze Cobalt pubbliche (aggiornata Feb 2026)
+  // Fonte: https://cobalt.directory/ e https://instances.hyper.lol/
   static const List<String> _cobaltInstances = [
-    // Community instances con alta disponibilità
-    'https://cobalt.alpha.wolfy.love',      // 100% uptime
-    'https://cobalt.omega.wolfy.love',      // 96% uptime
-    'https://nuko-c.meowing.de',            // 96% uptime
-    'https://subito-c.meowing.de',          // 79% uptime
-    'https://grapefruit.clxxped.lol',       // 88% uptime
-    'https://melon.clxxped.lol',            // 83% uptime
-    'https://cobaltapi.squair.xyz',         // 83% uptime
-    'https://api.qwkuns.me',                // 83% uptime
-    'https://api.dl.woof.monster',          // 75% uptime
-    'https://api.kektube.com',              // 70% uptime
-    'https://cobaltapi.cjs.nz',             // 63% uptime
+    // Istanze senza Turnstile (priorità alta)
+    'https://capi.tieren.men',
+    'https://cobalt.dev.kwiatekmiki.com',
+    'https://api.cobalt.lol',
+    'https://cobalt-api.kwiatekmiki.com',
+    // Community instances
+    'https://cobalt.alpha.wolfy.love',
+    'https://cobalt.omega.wolfy.love',
+    'https://nuko-c.meowing.de',
+    'https://grapefruit.clxxped.lol',
+    'https://melon.clxxped.lol',
+    'https://cobaltapi.squair.xyz',
+    'https://api.qwkuns.me',
   ];
 
   Future<String> get _downloadPath async {
@@ -104,22 +106,43 @@ class DownloadService {
     required String quality,
     required bool audioOnly,
   }) async {
-    try {
-      // Endpoint POST /
-      final endpoint = apiUrl.endsWith('/') ? apiUrl : '$apiUrl/';
+    // Prova diversi endpoint per ogni istanza
+    final endpoints = [
+      apiUrl.endsWith('/') ? apiUrl : '$apiUrl/',
+      '$apiUrl/api/json',
+      '$apiUrl/api',
+    ];
 
+    for (final endpoint in endpoints) {
+      final result = await _tryEndpoint(
+        endpoint: endpoint,
+        videoUrl: videoUrl,
+        quality: quality,
+        audioOnly: audioOnly,
+      );
+      if (result != null) return result;
+    }
+
+    return null;
+  }
+
+  Future<Map<String, dynamic>?> _tryEndpoint({
+    required String endpoint,
+    required String videoUrl,
+    required String quality,
+    required bool audioOnly,
+  }) async {
+    try {
       final response = await _dio.post(
         endpoint,
         options: Options(
           headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
-            'Origin': 'https://cobalt.tools',
-            'Referer': 'https://cobalt.tools/',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
           },
-          sendTimeout: const Duration(seconds: 30),
-          receiveTimeout: const Duration(seconds: 30),
+          sendTimeout: const Duration(seconds: 15),
+          receiveTimeout: const Duration(seconds: 15),
           validateStatus: (status) => status != null && status < 500,
         ),
         data: jsonEncode({
@@ -128,26 +151,31 @@ class DownloadService {
           'audioFormat': 'mp3',
           'downloadMode': audioOnly ? 'audio' : 'auto',
           'filenameStyle': 'basic',
+          // Vecchio formato (v6)
+          'vQuality': quality,
+          'aFormat': 'mp3',
+          'isAudioOnly': audioOnly,
+          'filenamePattern': 'basic',
         }),
       );
 
-      debugPrint('Cobalt response from $apiUrl: ${response.statusCode} - ${response.data}');
+      debugPrint('Cobalt response from $endpoint: ${response.statusCode}');
 
-      if (response.statusCode == 200) {
-        final data = response.data;
+      if (response.statusCode == 200 && response.data is Map) {
+        final data = response.data as Map;
 
         // Status: tunnel, redirect, picker, stream, error
-        if (data['status'] == 'tunnel' || data['status'] == 'redirect' || data['status'] == 'stream') {
+        final status = data['status']?.toString();
+        if (status == 'tunnel' || status == 'redirect' || status == 'stream') {
           return {
             'success': true,
             'downloadUrl': data['url'],
             'filename': data['filename'] ?? 'video',
-            'server': apiUrl,
+            'server': endpoint,
           };
-        } else if (data['status'] == 'picker') {
+        } else if (status == 'picker') {
           final picker = data['picker'] as List?;
           if (picker != null && picker.isNotEmpty) {
-            // Prendi il video con audio (type: video) se disponibile
             var selectedItem = picker[0];
             for (final item in picker) {
               if (item['type'] == 'video') {
@@ -160,18 +188,15 @@ class DownloadService {
               'downloadUrl': selectedItem['url'],
               'filename': 'video',
               'picker': picker,
-              'server': apiUrl,
+              'server': endpoint,
             };
           }
-        } else if (data['status'] == 'error') {
-          final errorMsg = data['error'] ?? data['text'] ?? 'Unknown error';
-          debugPrint('Cobalt error: $errorMsg');
         }
       }
 
       return null;
     } catch (e) {
-      debugPrint('Cobalt exception with $apiUrl: $e');
+      debugPrint('Cobalt exception with $endpoint: $e');
       return null;
     }
   }
