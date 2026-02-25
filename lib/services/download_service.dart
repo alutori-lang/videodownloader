@@ -114,6 +114,9 @@ class DownloadService {
           headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+            'Origin': 'https://cobalt.tools',
+            'Referer': 'https://cobalt.tools/',
           },
           sendTimeout: const Duration(seconds: 30),
           receiveTimeout: const Duration(seconds: 30),
@@ -133,7 +136,7 @@ class DownloadService {
       if (response.statusCode == 200) {
         final data = response.data;
 
-        // Status: tunnel, redirect, picker, error
+        // Status: tunnel, redirect, picker, stream, error
         if (data['status'] == 'tunnel' || data['status'] == 'redirect' || data['status'] == 'stream') {
           return {
             'success': true,
@@ -144,9 +147,17 @@ class DownloadService {
         } else if (data['status'] == 'picker') {
           final picker = data['picker'] as List?;
           if (picker != null && picker.isNotEmpty) {
+            // Prendi il video con audio (type: video) se disponibile
+            var selectedItem = picker[0];
+            for (final item in picker) {
+              if (item['type'] == 'video') {
+                selectedItem = item;
+                break;
+              }
+            }
             return {
               'success': true,
-              'downloadUrl': picker[0]['url'],
+              'downloadUrl': selectedItem['url'],
               'filename': 'video',
               'picker': picker,
               'server': apiUrl,

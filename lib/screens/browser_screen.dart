@@ -459,19 +459,34 @@ class _BrowserScreenState extends State<BrowserScreen> {
                         const SizedBox(width: 10),
                         const Expanded(
                           child: Text(
-                            'Download fallito - Server non disponibile',
+                            'Server offline',
                             style: TextStyle(color: Colors.white, fontSize: 13),
                           ),
                         ),
                         GestureDetector(
-                          onTap: () => provider.retryDownload(lastItem.id),
-                          child: const Text(
-                            'Riprova',
-                            style: TextStyle(
+                          onTap: () {
+                            // Apri cobalt.tools con l'URL del video
+                            final encodedUrl = Uri.encodeComponent(lastItem.url);
+                            _webViewController?.loadUrl(
+                              urlRequest: URLRequest(
+                                url: WebUri('https://cobalt.tools/?u=$encodedUrl'),
+                              ),
+                            );
+                            provider.removeDownload(lastItem.id);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
                               color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              decoration: TextDecoration.underline,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text(
+                              'Scarica manualmente',
+                              style: TextStyle(
+                                color: Colors.red,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),
