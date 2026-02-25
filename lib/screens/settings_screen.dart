@@ -74,7 +74,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Icon(Icons.star_rounded, color: Color(0xFF333333)),
                         SizedBox(width: 8),
                         Text(
-                          'QuickSave PRO',
+                          '1 Click PRO',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,

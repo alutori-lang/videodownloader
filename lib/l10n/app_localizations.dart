@@ -14,7 +14,7 @@ class AppLocalizations {
 
   static final Map<String, Map<String, String>> _localizedValues = {
     'en': {
-      'appName': 'QuickSave',
+      'appName': '1 Click Video Download',
       'pasteUrl': 'Paste URL',
       'urlHint': 'Paste any video or MP3 URL...',
       'download': 'DOWNLOAD',
@@ -52,7 +52,7 @@ class AppLocalizations {
       'supportedPlatforms': 'Supported Platforms',
     },
     'it': {
-      'appName': 'QuickSave',
+      'appName': '1 Click Video Download',
       'pasteUrl': 'Incolla URL',
       'urlHint': 'Incolla qualsiasi URL del video o MP3...',
       'download': 'SCARICA',
@@ -90,7 +90,7 @@ class AppLocalizations {
       'supportedPlatforms': 'Piattaforme supportate',
     },
     'es': {
-      'appName': 'QuickSave',
+      'appName': '1 Click Video Download',
       'pasteUrl': 'Pegar URL',
       'urlHint': 'Pega cualquier URL de video o MP3...',
       'download': 'DESCARGAR',
@@ -128,7 +128,7 @@ class AppLocalizations {
       'supportedPlatforms': 'Plataformas soportadas',
     },
     'fr': {
-      'appName': 'QuickSave',
+      'appName': '1 Click Video Download',
       'pasteUrl': 'Coller URL',
       'urlHint': 'Collez n\'importe quelle URL de vidéo ou MP3...',
       'download': 'TÉLÉCHARGER',
@@ -166,7 +166,7 @@ class AppLocalizations {
       'supportedPlatforms': 'Plateformes supportées',
     },
     'de': {
-      'appName': 'QuickSave',
+      'appName': '1 Click Video Download',
       'pasteUrl': 'URL einfügen',
       'urlHint': 'Füge eine Video- oder MP3-URL ein...',
       'download': 'HERUNTERLADEN',
@@ -204,7 +204,7 @@ class AppLocalizations {
       'supportedPlatforms': 'Unterstützte Plattformen',
     },
     'pt': {
-      'appName': 'QuickSave',
+      'appName': '1 Click Video Download',
       'pasteUrl': 'Colar URL',
       'urlHint': 'Cole qualquer URL de vídeo ou MP3...',
       'download': 'BAIXAR',
@@ -242,7 +242,7 @@ class AppLocalizations {
       'supportedPlatforms': 'Plataformas suportadas',
     },
     'ru': {
-      'appName': 'QuickSave',
+      'appName': '1 Click Video Download',
       'pasteUrl': 'Вставить URL',
       'urlHint': 'Вставьте любой URL видео или MP3...',
       'download': 'СКАЧАТЬ',
@@ -280,7 +280,7 @@ class AppLocalizations {
       'supportedPlatforms': 'Поддерживаемые платформы',
     },
     'ar': {
-      'appName': 'QuickSave',
+      'appName': '1 Click Video Download',
       'pasteUrl': 'لصق الرابط',
       'urlHint': 'الصق أي رابط فيديو أو MP3...',
       'download': 'تحميل',
@@ -318,7 +318,7 @@ class AppLocalizations {
       'supportedPlatforms': 'المنصات المدعومة',
     },
     'hi': {
-      'appName': 'QuickSave',
+      'appName': '1 Click Video Download',
       'pasteUrl': 'URL पेस्ट करें',
       'urlHint': 'कोई भी वीडियो या MP3 URL पेस्ट करें...',
       'download': 'डाउनलोड',
@@ -356,7 +356,7 @@ class AppLocalizations {
       'supportedPlatforms': 'समर्थित प्लेटफ़ॉर्म',
     },
     'zh': {
-      'appName': 'QuickSave',
+      'appName': '1 Click Video Download',
       'pasteUrl': '粘贴链接',
       'urlHint': '粘贴任何视频或MP3链接...',
       'download': '下载',
@@ -394,7 +394,7 @@ class AppLocalizations {
       'supportedPlatforms': '支持的平台',
     },
     'ja': {
-      'appName': 'QuickSave',
+      'appName': '1 Click Video Download',
       'pasteUrl': 'URLを貼り付け',
       'urlHint': '動画やMP3のURLを貼り付けてください...',
       'download': 'ダウンロード',
@@ -432,7 +432,7 @@ class AppLocalizations {
       'supportedPlatforms': 'サポートされているプラットフォーム',
     },
     'ko': {
-      'appName': 'QuickSave',
+      'appName': '1 Click Video Download',
       'pasteUrl': 'URL 붙여넣기',
       'urlHint': '동영상 또는 MP3 URL을 붙여넣으세요...',
       'download': '다운로드',
@@ -470,7 +470,7 @@ class AppLocalizations {
       'supportedPlatforms': '지원 플랫폼',
     },
     'tr': {
-      'appName': 'QuickSave',
+      'appName': '1 Click Video Download',
       'pasteUrl': 'URL Yapıştır',
       'urlHint': 'Herhangi bir video veya MP3 URL\'si yapıştırın...',
       'download': 'İNDİR',

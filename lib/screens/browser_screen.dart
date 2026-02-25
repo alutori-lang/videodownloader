@@ -54,19 +54,34 @@ class _BrowserScreenState extends State<BrowserScreen> {
   /// Controlla se l'URL è una pagina video specifica (per download diretto)
   bool _isVideoUrl(String url) {
     final videoPatterns = [
+      // YouTube - all variants
       'youtube.com/watch',
+      'm.youtube.com/watch',
       'youtube.com/shorts',
+      'm.youtube.com/shorts',
+      'youtube.com/v/',
       'youtu.be/',
+      'youtube.com/embed/',
+      'v=', // YouTube video ID parameter
+      // Facebook
       'facebook.com/watch',
       'facebook.com/reel',
+      'facebook.com/video',
       'fb.watch',
+      'm.facebook.com/watch',
+      // Instagram
       'instagram.com/p/',
       'instagram.com/reel/',
       'instagram.com/reels/',
+      'instagram.com/tv/',
+      // TikTok
       'tiktok.com/@',
       'tiktok.com/t/',
+      'vm.tiktok.com',
+      // Twitter/X
       'twitter.com/status',
       'x.com/status',
+      // Others
       'vimeo.com/',
       'dailymotion.com/video',
       'soundcloud.com/',
@@ -78,30 +93,57 @@ class _BrowserScreenState extends State<BrowserScreen> {
     return videoPatterns.any((pattern) => url.contains(pattern));
   }
 
-  void _showDownloadPopup() {
-    final l10n = AppLocalizations.of(context);
+  Future<void> _showDownloadPopup() async {
+    // Prova a ottenere l'URL reale del video tramite JavaScript
+    String videoUrl = _currentUrl;
 
-    // Controlla se siamo su una pagina video specifica
-    if (!_isVideoUrl(_currentUrl)) {
-      // Mostra messaggio di aiuto
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('📌 ${l10n.goToVideo}'),
-          backgroundColor: const Color(0xFFEA580C),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          duration: const Duration(seconds: 3),
-        ),
-      );
-      return;
+    if (_webViewController != null && _currentUrl.contains('youtube')) {
+      try {
+        // Prova a ottenere l'URL canonico o il video ID dalla pagina
+        final result = await _webViewController!.evaluateJavascript(source: '''
+          (function() {
+            // Prova canonical URL
+            var canonical = document.querySelector('link[rel="canonical"]');
+            if (canonical && canonical.href) return canonical.href;
+
+            // Prova og:url
+            var ogUrl = document.querySelector('meta[property="og:url"]');
+            if (ogUrl && ogUrl.content) return ogUrl.content;
+
+            // Prova a trovare video ID nei player
+            var videoId = null;
+            var scripts = document.getElementsByTagName('script');
+            for (var i = 0; i < scripts.length; i++) {
+              var match = scripts[i].textContent.match(/"videoId":"([^"]+)"/);
+              if (match) {
+                videoId = match[1];
+                break;
+              }
+            }
+            if (videoId) return 'https://www.youtube.com/watch?v=' + videoId;
+
+            // Fallback: URL corrente
+            return window.location.href;
+          })();
+        ''');
+
+        if (result != null && result.toString().isNotEmpty && result.toString() != 'null') {
+          videoUrl = result.toString().replaceAll('"', '');
+        }
+      } catch (e) {
+        // Se fallisce, usa l'URL corrente
+        debugPrint('Failed to get video URL: $e');
+      }
     }
+
+    if (!mounted) return;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => DownloadPopup(
-        url: _currentUrl,
+        url: videoUrl,
         title: _pageTitle.isNotEmpty ? _pageTitle : 'Video',
         onPlay: () {
           Navigator.pop(context);
@@ -109,13 +151,13 @@ class _BrowserScreenState extends State<BrowserScreen> {
         },
         onDownload: (format, quality) {
           Navigator.pop(context);
-          _startDownload(format, quality);
+          _startDownload(format, quality, videoUrl);
         },
       ),
     );
   }
 
-  void _startDownload(String format, String quality) {
+  void _startDownload(String format, String quality, String videoUrl) {
     final l10n = AppLocalizations.of(context);
     final provider = Provider.of<DownloadProvider>(context, listen: false);
 
@@ -134,7 +176,7 @@ class _BrowserScreenState extends State<BrowserScreen> {
 
     // Avvia il download usando Cobalt API
     provider.startDownload(
-      videoUrl: _currentUrl,
+      videoUrl: videoUrl,
       title: _pageTitle.isNotEmpty ? _pageTitle : 'Video',
       quality: cobaltQuality,
       audioOnly: format == 'mp3',

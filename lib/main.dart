@@ -25,7 +25,7 @@ class QuickSaveApp extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (_) => DownloadProvider(),
       child: MaterialApp(
-        title: 'QuickSave',
+        title: '1 Click Video Download',
         debugShowCheckedModeBanner: false,
         localizationsDelegates: const [
           AppLocalizations.delegate,
