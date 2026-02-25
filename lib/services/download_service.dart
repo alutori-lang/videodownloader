@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter/foundation.dart';
 
 /// Servizio di download con multiple API di fallback
 /// Se una API fallisce, prova automaticamente la successiva
@@ -10,20 +11,21 @@ class DownloadService {
   final Dio _dio = Dio();
 
   // ============================================================
-  // LISTA API DI BACKUP - Se una fallisce, prova la successiva
+  // LISTA API COBALT - Istanze community funzionanti
   // ============================================================
 
-  // API 1: Cobalt (Principale)
-  static const String _cobaltApi = 'https://api.cobalt.tools/api/json';
-
-  // API 2: Istanze Cobalt alternative (community-hosted)
-  static const List<String> _cobaltMirrors = [
-    'https://cobalt.api.timelessnesses.me/api/json',
-    'https://co.eepy.today/api/json',
+  // Lista di istanze Cobalt pubbliche (aggiornata)
+  static const List<Map<String, String>> _cobaltInstances = [
+    // Istanze con nuovo formato API (v7+)
+    {'url': 'https://cobalt.tools', 'version': 'v7'},
+    {'url': 'https://cobalt-api.hyper.lol', 'version': 'v7'},
+    {'url': 'https://cobalt.canine.tools', 'version': 'v7'},
+    {'url': 'https://dl.khyernet.xyz', 'version': 'v7'},
+    {'url': 'https://cobalt.lostdusty.win', 'version': 'v7'},
+    // Istanze con vecchio formato (fallback)
+    {'url': 'https://api.cobalt.tools/api/json', 'version': 'v6'},
+    {'url': 'https://co.eepy.today/api/json', 'version': 'v6'},
   ];
-
-  // API 3: AllTube (self-hosted alternativo)
-  // Se vuoi hostare il tuo: https://github.com/Rudloff/alltube
 
   Future<String> get _downloadPath async {
     if (Platform.isAndroid) {
@@ -64,33 +66,111 @@ class DownloadService {
     String quality = '1080',
     bool audioOnly = false,
   }) async {
-    // Lista di tutte le API da provare in ordine
-    final allApis = [_cobaltApi, ..._cobaltMirrors];
+    debugPrint('Cobalt: Trying to get download URL for: $url');
 
-    for (final apiUrl in allApis) {
-      final result = await _tryApi(
-        apiUrl: apiUrl,
-        videoUrl: url,
-        quality: quality,
-        audioOnly: audioOnly,
-      );
+    for (final instance in _cobaltInstances) {
+      final apiUrl = instance['url']!;
+      final version = instance['version']!;
+
+      debugPrint('Cobalt: Trying server $apiUrl ($version)');
+
+      final result = version == 'v7'
+          ? await _tryApiV7(
+              apiUrl: apiUrl,
+              videoUrl: url,
+              quality: quality,
+              audioOnly: audioOnly,
+            )
+          : await _tryApiV6(
+              apiUrl: apiUrl,
+              videoUrl: url,
+              quality: quality,
+              audioOnly: audioOnly,
+            );
 
       if (result != null && result['success'] == true) {
-        return result; // Trovato! Restituisci il risultato
+        debugPrint('Cobalt: Success with $apiUrl');
+        return result;
       }
 
-      // Se fallisce, prova la prossima API
+      debugPrint('Cobalt: Failed with $apiUrl, trying next...');
     }
 
-    // Tutte le API hanno fallito
+    debugPrint('Cobalt: All servers failed');
     return {
       'success': false,
       'error': 'Tutti i server sono offline. Riprova più tardi.',
     };
   }
 
-  /// Prova una singola API Cobalt
-  Future<Map<String, dynamic>?> _tryApi({
+  /// Prova API Cobalt v7 (nuovo formato)
+  Future<Map<String, dynamic>?> _tryApiV7({
+    required String apiUrl,
+    required String videoUrl,
+    required String quality,
+    required bool audioOnly,
+  }) async {
+    try {
+      final endpoint = apiUrl.endsWith('/') ? apiUrl : '$apiUrl/';
+
+      final response = await _dio.post(
+        endpoint,
+        options: Options(
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+          sendTimeout: const Duration(seconds: 20),
+          receiveTimeout: const Duration(seconds: 20),
+          validateStatus: (status) => status != null && status < 500,
+        ),
+        data: jsonEncode({
+          'url': videoUrl,
+          'videoQuality': quality,
+          'audioFormat': 'mp3',
+          'downloadMode': audioOnly ? 'audio' : 'auto',
+          'filenameStyle': 'basic',
+        }),
+      );
+
+      debugPrint('Cobalt v7 response: ${response.statusCode} - ${response.data}');
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+
+        // Nuovo formato v7
+        if (data['status'] == 'tunnel' || data['status'] == 'redirect') {
+          return {
+            'success': true,
+            'downloadUrl': data['url'],
+            'filename': data['filename'] ?? 'video',
+            'server': apiUrl,
+          };
+        } else if (data['status'] == 'picker') {
+          final picker = data['picker'] as List;
+          if (picker.isNotEmpty) {
+            return {
+              'success': true,
+              'downloadUrl': picker[0]['url'],
+              'filename': 'video',
+              'picker': picker,
+              'server': apiUrl,
+            };
+          }
+        } else if (data['status'] == 'error') {
+          debugPrint('Cobalt v7 error: ${data['error']}');
+        }
+      }
+
+      return null;
+    } catch (e) {
+      debugPrint('Cobalt v7 exception: $e');
+      return null;
+    }
+  }
+
+  /// Prova API Cobalt v6 (vecchio formato)
+  Future<Map<String, dynamic>?> _tryApiV6({
     required String apiUrl,
     required String videoUrl,
     required String quality,
@@ -104,8 +184,9 @@ class DownloadService {
             'Accept': 'application/json',
             'Content-Type': 'application/json',
           },
-          sendTimeout: const Duration(seconds: 15),
-          receiveTimeout: const Duration(seconds: 15),
+          sendTimeout: const Duration(seconds: 20),
+          receiveTimeout: const Duration(seconds: 20),
+          validateStatus: (status) => status != null && status < 500,
         ),
         data: jsonEncode({
           'url': videoUrl,
@@ -116,6 +197,8 @@ class DownloadService {
         }),
       );
 
+      debugPrint('Cobalt v6 response: ${response.statusCode} - ${response.data}');
+
       if (response.statusCode == 200) {
         final data = response.data;
 
@@ -124,7 +207,7 @@ class DownloadService {
             'success': true,
             'downloadUrl': data['url'],
             'filename': data['filename'] ?? 'video',
-            'server': apiUrl, // Traccia quale server ha funzionato
+            'server': apiUrl,
           };
         } else if (data['status'] == 'picker') {
           return {
@@ -135,16 +218,14 @@ class DownloadService {
             'server': apiUrl,
           };
         } else if (data['status'] == 'error') {
-          return {
-            'success': false,
-            'error': data['text'] ?? 'Errore dal server',
-          };
+          debugPrint('Cobalt v6 error: ${data['text']}');
         }
       }
 
-      return null; // Risposta non valida, prova prossima API
+      return null;
     } catch (e) {
-      return null; // Errore, prova prossima API
+      debugPrint('Cobalt v6 exception: $e');
+      return null;
     }
   }
 
@@ -268,14 +349,14 @@ class DownloadService {
 
   /// Controlla quali API sono online
   Future<List<Map<String, dynamic>>> checkApiStatus() async {
-    final allApis = [_cobaltApi, ..._cobaltMirrors];
     final results = <Map<String, dynamic>>[];
 
-    for (final api in allApis) {
+    for (final instance in _cobaltInstances) {
+      final apiUrl = instance['url']!;
       try {
         final stopwatch = Stopwatch()..start();
         final response = await _dio.get(
-          api.replaceAll('/api/json', '/api/serverInfo'),
+          apiUrl,
           options: Options(
             receiveTimeout: const Duration(seconds: 5),
           ),
@@ -283,13 +364,13 @@ class DownloadService {
         stopwatch.stop();
 
         results.add({
-          'url': api,
-          'online': response.statusCode == 200,
+          'url': apiUrl,
+          'online': response.statusCode == 200 || response.statusCode == 405,
           'latency': stopwatch.elapsedMilliseconds,
         });
       } catch (e) {
         results.add({
-          'url': api,
+          'url': apiUrl,
           'online': false,
           'latency': -1,
         });
