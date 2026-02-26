@@ -68,6 +68,7 @@ class DownloadProvider extends ChangeNotifier {
           if (index != -1) {
             _downloads[index] = _downloads[index].copyWith(
               status: DownloadStatus.failed,
+              errorMessage: error,
             );
             notifyListeners();
           }
@@ -79,6 +80,7 @@ class DownloadProvider extends ChangeNotifier {
       if (index != -1) {
         _downloads[index] = _downloads[index].copyWith(
           status: DownloadStatus.failed,
+          errorMessage: e.toString(),
         );
         notifyListeners();
       }

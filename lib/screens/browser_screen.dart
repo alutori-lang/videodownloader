@@ -567,10 +567,14 @@ class _BrowserScreenState extends State<BrowserScreen> {
                       children: [
                         const Icon(Icons.error, color: Colors.white, size: 20),
                         const SizedBox(width: 10),
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            'Server offline',
-                            style: TextStyle(color: Colors.white, fontSize: 13),
+                            lastItem.errorMessage.isNotEmpty
+                                ? lastItem.errorMessage
+                                : 'Server offline',
+                            style: const TextStyle(color: Colors.white, fontSize: 13),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         GestureDetector(

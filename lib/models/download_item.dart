@@ -10,6 +10,7 @@ class DownloadItem {
   final int fileSize;
   int downloadedBytes;
   DownloadStatus status;
+  final String errorMessage;
   final DateTime createdAt;
 
   DownloadItem({
@@ -22,6 +23,7 @@ class DownloadItem {
     this.fileSize = 0,
     this.downloadedBytes = 0,
     this.status = DownloadStatus.pending,
+    this.errorMessage = '',
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
@@ -56,6 +58,7 @@ class DownloadItem {
     int? fileSize,
     int? downloadedBytes,
     DownloadStatus? status,
+    String? errorMessage,
     DateTime? createdAt,
   }) {
     return DownloadItem(
@@ -68,6 +71,7 @@ class DownloadItem {
       fileSize: fileSize ?? this.fileSize,
       downloadedBytes: downloadedBytes ?? this.downloadedBytes,
       status: status ?? this.status,
+      errorMessage: errorMessage ?? this.errorMessage,
       createdAt: createdAt ?? this.createdAt,
     );
   }

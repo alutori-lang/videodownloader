@@ -290,11 +290,27 @@ class DownloadService {
         if (contentsList != null && contentsList is List && contentsList.isNotEmpty) {
           final contents = contentsList[0];
 
-          // Audio
+          // Audio - prova la migliore qualita' disponibile
           if (audioOnly && contents['audios'] != null) {
             final audios = contents['audios'] as List?;
+            debugPrint('SMVD: audioOnly=true, audios count=${audios?.length ?? 0}');
             if (audios != null && audios.isNotEmpty) {
-              downloadUrl = audios.first['url'];
+              // Preferisci audio con qualita' migliore (ultimo nella lista = migliore bitrate)
+              // oppure usa il primo disponibile
+              String? bestAudioUrl;
+              int bestBitrate = 0;
+              for (final audio in audios) {
+                final audioUrl = audio['url']?.toString();
+                if (audioUrl == null) continue;
+                final bitrate = audio['metadata']?['bitrate'] as int? ?? 0;
+                debugPrint('SMVD: Audio option: bitrate=$bitrate, quality=${audio['metadata']?['audio_quality']}');
+                if (bitrate > bestBitrate || bestAudioUrl == null) {
+                  bestBitrate = bitrate;
+                  bestAudioUrl = audioUrl;
+                }
+              }
+              downloadUrl = bestAudioUrl ?? audios.first['url'];
+              debugPrint('SMVD: Selected audio URL, bitrate=$bestBitrate, length=${downloadUrl?.toString().length ?? 0}');
             }
           }
 
@@ -356,13 +372,17 @@ class DownloadService {
         if (downloadUrl != null) {
           // Cerca audio separato se disponibile
           String? audioUrl;
-          if (contentsList[0]['audios'] != null) {
-            final audios = contentsList[0]['audios'] as List?;
-            if (audios != null && audios.isNotEmpty) {
-              audioUrl = audios.first['url']?.toString();
+          if (contentsList != null && contentsList is List && contentsList.isNotEmpty) {
+            final firstContent = contentsList[0];
+            if (firstContent != null && firstContent['audios'] != null) {
+              final audios = firstContent['audios'] as List?;
+              if (audios != null && audios.isNotEmpty) {
+                audioUrl = audios.first['url']?.toString();
+              }
             }
           }
-          debugPrint('SMVD: SUCCESS - Got proxy download URL, audioUrl=${audioUrl != null}');
+          debugPrint('SMVD: SUCCESS - downloadUrl=${downloadUrl.substring(0, downloadUrl.length > 80 ? 80 : downloadUrl.length)}...');
+          debugPrint('SMVD: audioUrl=${audioUrl != null ? "yes (${audioUrl.length} chars)" : "no"}');
           return {
             'success': true,
             'downloadUrl': downloadUrl,
@@ -757,6 +777,9 @@ class DownloadService {
     required Function(String error) onError,
   }) async {
     try {
+      debugPrint('downloadFile: Starting download of $fileName');
+      debugPrint('downloadFile: URL length=${url.length}, URL=${url.substring(0, url.length > 100 ? 100 : url.length)}...');
+
       final hasPermission = await requestPermissions();
       if (!hasPermission) {
         onError('Permesso di storage negato');
@@ -767,7 +790,9 @@ class DownloadService {
       final cleanFileName = fileName.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_');
       final filePath = '$savePath/$cleanFileName';
 
-      await _dio.download(
+      debugPrint('downloadFile: Saving to $filePath');
+
+      final response = await _dio.download(
         url,
         filePath,
         onReceiveProgress: (received, total) {
@@ -783,17 +808,52 @@ class DownloadService {
           sendTimeout: const Duration(minutes: 5),
           followRedirects: true,
           maxRedirects: 10,
-          validateStatus: (status) => status != null && status < 400,
+          validateStatus: (status) => status != null && status < 500,
           headers: {
-            'User-Agent': 'Mozilla/5.0 (Linux; Android 15; Pixel 8 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 15; Pixel 8 Pro) AppleWebKit/537.36',
             'Accept': '*/*',
-            'Accept-Language': 'en-US,en;q=0.9',
           },
         ),
       );
 
+      debugPrint('downloadFile: Response status=${response.statusCode}');
+
+      // Se il server ha restituito un errore HTTP 4xx
+      if (response.statusCode != null && response.statusCode! >= 400) {
+        debugPrint('downloadFile: HTTP error ${response.statusCode}');
+        try { await File(filePath).delete(); } catch (_) {}
+        onError('Errore HTTP ${response.statusCode} durante il download');
+        return;
+      }
+
+      // Verifica che il file non sia una pagina di errore
+      final file = File(filePath);
+      if (await file.exists()) {
+        final fileSize = await file.length();
+        if (fileSize < 1000) {
+          // File troppo piccolo - potrebbe essere una pagina di errore
+          final content = await file.readAsString().catchError((_) => '');
+          if (content.contains('<html') || content.contains('error')) {
+            debugPrint('downloadFile: File is an error page ($fileSize bytes)');
+            await file.delete();
+            onError('Download fallito: il server ha restituito un errore');
+            return;
+          }
+        }
+        debugPrint('downloadFile: Download completed! $filePath ($fileSize bytes)');
+      }
+
       onComplete(filePath);
+    } on DioException catch (e) {
+      debugPrint('downloadFile: DioException - type=${e.type}, statusCode=${e.response?.statusCode}, message=${e.message}');
+      final statusCode = e.response?.statusCode;
+      if (statusCode != null) {
+        onError('Errore HTTP $statusCode durante il download');
+      } else {
+        onError('Errore di rete: ${e.type.name}');
+      }
     } catch (e) {
+      debugPrint('downloadFile: FAILED - $e');
       onError(e.toString());
     }
   }
@@ -808,11 +868,47 @@ class DownloadService {
     required Function(String filePath) onComplete,
     required Function(String error) onError,
   }) async {
+    // Per audio-only: scarica video+audio e poi estrai solo audio
+    // (il proxy SMVD da' 403 se scarichi audio direttamente)
+    if (audioOnly) {
+      debugPrint('Download: Audio-only requested, using video+audio merge+extract');
+      final result = await getDownloadUrl(
+        url: videoUrl,
+        quality: quality,
+        audioOnly: false, // Ottieni ENTRAMBI video e audio
+      );
+
+      if (result == null || result['success'] != true) {
+        onError(result?['error'] ?? 'Impossibile ottenere il link di download');
+        return;
+      }
+
+      final downloadUrl = result['downloadUrl'] as String?;
+      final audioUrl = result['audioUrl'] as String?;
+
+      if (downloadUrl == null || downloadUrl.isEmpty) {
+        onError('URL di download vuoto');
+        return;
+      }
+
+      // Usa download nativo Android per audio (bypassa Cloudflare TLS fingerprint)
+      final audioDownloadUrl = audioUrl ?? downloadUrl;
+      final cleanTitle = title.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_');
+      await _downloadAudioNative(
+        audioUrl: audioDownloadUrl,
+        fileName: '$cleanTitle.m4a',
+        onProgress: onProgress,
+        onComplete: onComplete,
+        onError: onError,
+      );
+      return;
+    }
+
     // Step 1: Ottieni link (con fallback automatico)
     final result = await getDownloadUrl(
       url: videoUrl,
       quality: quality,
-      audioOnly: audioOnly,
+      audioOnly: false,
     );
 
     if (result == null || result['success'] != true) {
@@ -821,15 +917,22 @@ class DownloadService {
     }
 
     // Step 2: Scarica il file
-    final extension = audioOnly ? 'mp3' : 'mp4';
-    final fileName = '$title.$extension';
+    final fileName = '$title.mp4';
+    final downloadUrl = result['downloadUrl'] as String?;
 
-    // Se c'e' audio separato, scarica entrambi e uniscili con FFmpeg
+    debugPrint('Download: downloadUrl=${downloadUrl?.substring(0, 80)}..., fileName=$fileName');
+
+    if (downloadUrl == null || downloadUrl.isEmpty) {
+      onError('URL di download vuoto');
+      return;
+    }
+
+    // Se c'e' audio separato, scarica entrambi e uniscili con MediaMuxer
     final audioUrl = result['audioUrl'] as String?;
-    if (!audioOnly && audioUrl != null) {
-      debugPrint('Download: Video+Audio separati, scarico e unisco con FFmpeg');
+    if (audioUrl != null) {
+      debugPrint('Download: Video+Audio separati, scarico e unisco con MediaMuxer');
       await _downloadAndMerge(
-        videoUrl: result['downloadUrl'],
+        videoUrl: downloadUrl,
         audioUrl: audioUrl,
         fileName: fileName,
         onProgress: onProgress,
@@ -839,8 +942,9 @@ class DownloadService {
       return;
     }
 
+    debugPrint('Download: Downloading single file');
     await downloadFile(
-      url: result['downloadUrl'],
+      url: downloadUrl,
       fileName: fileName,
       onProgress: onProgress,
       onComplete: onComplete,
@@ -929,6 +1033,80 @@ class DownloadService {
       }
     } catch (e) {
       debugPrint('Muxer exception: $e');
+      onError(e.toString());
+    }
+  }
+
+  /// Scarica un file usando il client HTTP nativo Android (bypassa Cloudflare TLS fingerprint)
+  Future<void> _nativeDownloadFile({
+    required String url,
+    required String outputPath,
+  }) async {
+    debugPrint('NativeDownload: Downloading ${url.substring(0, url.length > 80 ? 80 : url.length)}...');
+    debugPrint('NativeDownload: Output: $outputPath');
+
+    final result = await _muxerChannel.invokeMethod<int>('nativeDownload', {
+      'url': url,
+      'outputPath': outputPath,
+    });
+
+    debugPrint('NativeDownload: Downloaded $result bytes');
+
+    if (result == null || result <= 0) {
+      throw Exception('Download nativo fallito: 0 bytes');
+    }
+  }
+
+  /// Scarica audio usando download nativo Android (bypassa Cloudflare 403)
+  /// Il proxy SMVD blocca Dart/Dio per TLS fingerprinting
+  Future<void> _downloadAudioNative({
+    required String audioUrl,
+    required String fileName,
+    required Function(int received, int total) onProgress,
+    required Function(String filePath) onComplete,
+    required Function(String error) onError,
+  }) async {
+    try {
+      final hasPermission = await requestPermissions();
+      if (!hasPermission) {
+        onError('Permesso di storage negato');
+        return;
+      }
+
+      final savePath = await _downloadPath;
+      final cleanFileName = fileName.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_');
+      final finalPath = '$savePath/$cleanFileName';
+
+      // Mostra progresso indeterminato (il download nativo non supporta callback di progresso)
+      onProgress(0, -1);
+
+      // Scarica audio con client HTTP nativo Android
+      debugPrint('AudioNative: Downloading audio with native HTTP client...');
+      await _nativeDownloadFile(url: audioUrl, outputPath: finalPath);
+
+      // Verifica che il file esista e sia valido
+      final file = File(finalPath);
+      if (await file.exists()) {
+        final fileSize = await file.length();
+        debugPrint('AudioNative: File size = $fileSize bytes');
+
+        if (fileSize < 1000) {
+          final content = await file.readAsString().catchError((_) => '');
+          if (content.contains('<html') || content.contains('error') || content.contains('403')) {
+            await file.delete();
+            onError('Download fallito: il server ha restituito un errore');
+            return;
+          }
+        }
+
+        onProgress(fileSize, fileSize);
+        debugPrint('AudioNative: SUCCESS - $finalPath ($fileSize bytes)');
+        onComplete(finalPath);
+      } else {
+        onError('File non trovato dopo il download');
+      }
+    } catch (e) {
+      debugPrint('AudioNative exception: $e');
       onError(e.toString());
     }
   }
