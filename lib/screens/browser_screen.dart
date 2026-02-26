@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:provider/provider.dart';
+import 'package:open_filex/open_filex.dart';
 import '../providers/download_provider.dart';
 import '../models/download_item.dart';
 import '../widgets/download_popup.dart';
@@ -502,6 +503,29 @@ class _BrowserScreenState extends State<BrowserScreen> {
                             style: const TextStyle(color: Colors.white, fontSize: 13),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () {
+                            if (lastItem.filePath.isNotEmpty) {
+                              OpenFilex.open(lastItem.filePath);
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Text(
+                              'APRI',
+                              style: TextStyle(
+                                color: Color(0xFF22C55E),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
                           ),
                         ),
                       ],
