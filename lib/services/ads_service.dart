@@ -6,9 +6,13 @@ class AdsService {
   factory AdsService() => _instance;
   AdsService._internal();
 
-  // Ad Unit IDs
-  static const String _bannerAdUnitId = 'ca-app-pub-9396424020196768/7898284548';
-  static const String _interstitialAdUnitId = 'ca-app-pub-9396424020196768/5850705709';
+  // Ad Unit IDs - Usa test IDs in debug, reali in release
+  static const String _bannerAdUnitId = kDebugMode
+      ? 'ca-app-pub-3940256099942544/6300978111' // Google test banner
+      : 'ca-app-pub-9396424020196768/7898284548';
+  static const String _interstitialAdUnitId = kDebugMode
+      ? 'ca-app-pub-3940256099942544/1033173712' // Google test interstitial
+      : 'ca-app-pub-9396424020196768/5850705709';
 
   InterstitialAd? _interstitialAd;
   int _downloadCount = 0;
@@ -55,11 +59,11 @@ class AdsService {
     );
   }
 
-  /// Mostra interstitial ogni 3 download
+  /// Mostra interstitial ogni 2 download
   Future<bool> showInterstitialIfReady() async {
     _downloadCount++;
 
-    if (_downloadCount % 3 != 0) {
+    if (_downloadCount % 2 != 0) {
       return false;
     }
 

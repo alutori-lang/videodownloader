@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../models/download_item.dart';
 import '../services/download_service.dart';
+import '../services/ads_service.dart';
 
 class DownloadProvider extends ChangeNotifier {
   final List<DownloadItem> _downloads = [];
@@ -61,6 +62,8 @@ class DownloadProvider extends ChangeNotifier {
               filePath: filePath,
             );
             notifyListeners();
+            // Mostra interstitial dopo download completato
+            AdsService().showInterstitialIfReady();
           }
         },
         onError: (error) {

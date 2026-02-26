@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:provider/provider.dart';
 import 'package:open_filex/open_filex.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../providers/download_provider.dart';
 import '../models/download_item.dart';
 import '../widgets/download_popup.dart';
@@ -23,11 +24,31 @@ class _BrowserScreenState extends State<BrowserScreen> {
   String _pageTitle = '';
   bool _isLoading = true;
   double _progress = 0;
+  BannerAd? _bannerAd;
+  bool _isBannerLoaded = false;
 
   @override
   void initState() {
     super.initState();
     _currentUrl = widget.initialUrl;
+    _loadBannerAd();
+  }
+
+  void _loadBannerAd() {
+    _bannerAd = AdsService().createBannerAd();
+    _bannerAd!.load().then((_) {
+      if (mounted) {
+        setState(() {
+          _isBannerLoaded = true;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _bannerAd?.dispose();
+    super.dispose();
   }
 
   /// Controlla se siamo su un sito supportato per il download
@@ -210,9 +231,6 @@ class _BrowserScreenState extends State<BrowserScreen> {
   }
 
   void _startDownload(String format, String quality, String videoUrl) async {
-    // Mostra interstitial ogni 3 download
-    await AdsService().showInterstitialIfReady();
-
     if (!mounted) return;
 
     final provider = Provider.of<DownloadProvider>(context, listen: false);
@@ -509,6 +527,15 @@ class _BrowserScreenState extends State<BrowserScreen> {
                 );
               },
             ),
+
+            // Banner Ad
+            if (_isBannerLoaded && _bannerAd != null)
+              Container(
+                width: double.infinity,
+                height: _bannerAd!.size.height.toDouble(),
+                color: const Color(0xFFFFF7ED),
+                child: AdWidget(ad: _bannerAd!),
+              ),
 
             // Download Completed/Failed Banner
             Consumer<DownloadProvider>(
