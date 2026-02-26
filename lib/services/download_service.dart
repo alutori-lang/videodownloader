@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 
 /// Servizio di download con multiple API di fallback
 /// Se una API fallisce, prova automaticamente la successiva
@@ -167,35 +168,78 @@ class DownloadService {
   }
 
   /// Prova SMVD API - Social Media Video Downloader (URL PROXY!)
+  /// Supporta YouTube, Facebook, Instagram, TikTok
   Future<Map<String, dynamic>?> _trySmvdApi({
     required String videoUrl,
     required bool audioOnly,
   }) async {
     try {
-      // Estrai video ID
-      String? videoId;
-      final uri = Uri.parse(videoUrl);
-      if (videoUrl.contains('youtu.be/')) {
-        videoId = uri.pathSegments.isNotEmpty ? uri.pathSegments.last.split('?').first : null;
-      } else if (videoUrl.contains('youtube.com')) {
-        videoId = uri.queryParameters['v'];
-      }
+      // Determina endpoint e parametri in base alla piattaforma
+      String? endpoint;
+      Map<String, String> queryParams = {};
 
-      if (videoId == null || videoId.isEmpty) {
-        debugPrint('SMVD: Could not extract video ID');
-        return null;
-      }
-
-      debugPrint('SMVD: Trying with video ID: $videoId');
-
-      final response = await _dio.get(
-        'https://$_smvdHost/youtube/v3/video/details',
-        queryParameters: {
+      if (videoUrl.contains('youtube.com') || videoUrl.contains('youtu.be')) {
+        // YouTube
+        String? videoId;
+        final uri = Uri.parse(videoUrl);
+        if (videoUrl.contains('youtu.be/')) {
+          videoId = uri.pathSegments.isNotEmpty ? uri.pathSegments.last.split('?').first : null;
+        } else {
+          videoId = uri.queryParameters['v'];
+        }
+        if (videoId == null || videoId.isEmpty) {
+          debugPrint('SMVD: Could not extract YouTube video ID');
+          return null;
+        }
+        endpoint = '/youtube/v3/video/details';
+        queryParams = {
           'videoId': videoId,
           'renderableFormats': '360p,720p',
           'urlAccess': 'proxied',
           'getTranscript': 'false',
-        },
+        };
+      } else if (videoUrl.contains('facebook.com') || videoUrl.contains('fb.watch')) {
+        // Facebook
+        endpoint = '/facebook/v3/post/details';
+        queryParams = {
+          'url': videoUrl,
+          'renderableFormats': '360p,720p',
+          'urlAccess': 'proxied',
+        };
+      } else if (videoUrl.contains('instagram.com')) {
+        // Instagram - estrai shortcode dall'URL
+        String? shortcode;
+        final regex = RegExp(r'instagram\.com/(?:p|reel|reels|tv)/([A-Za-z0-9_-]+)');
+        final match = regex.firstMatch(videoUrl);
+        if (match != null) {
+          shortcode = match.group(1);
+        }
+        if (shortcode == null || shortcode.isEmpty) {
+          debugPrint('SMVD: Could not extract Instagram shortcode');
+          return null;
+        }
+        endpoint = '/instagram/v3/media/post/details';
+        queryParams = {
+          'shortcode': shortcode,
+          'renderableFormats': '360p,720p',
+        };
+      } else if (videoUrl.contains('tiktok.com')) {
+        // TikTok
+        endpoint = '/tiktok/v3/post/details';
+        queryParams = {
+          'url': videoUrl,
+          'renderableFormats': '360p,720p',
+        };
+      } else {
+        debugPrint('SMVD: Unsupported platform for URL: $videoUrl');
+        return null;
+      }
+
+      debugPrint('SMVD: Trying $endpoint for $videoUrl');
+
+      final response = await _dio.get(
+        'https://$_smvdHost$endpoint',
+        queryParameters: queryParams,
         options: Options(
           headers: {
             'x-rapidapi-key': _rapidApiKey,
@@ -208,11 +252,38 @@ class DownloadService {
       );
 
       debugPrint('SMVD: Status ${response.statusCode}');
+      debugPrint('SMVD: Response keys: ${response.data is Map ? (response.data as Map).keys.toList() : 'not a map'}');
 
       if (response.statusCode == 200 && response.data != null) {
         final data = response.data;
+
+        // Check for error response
+        if (data['error'] != null) {
+          debugPrint('SMVD: API error: ${data['error']}');
+          return null;
+        }
+
         String? downloadUrl;
         String? title = data['title'];
+
+        // Formato diretto: url o video_url al top level
+        if (data['url'] != null && data['url'] is String) {
+          downloadUrl = data['url'];
+        } else if (data['video_url'] != null) {
+          downloadUrl = data['video_url'];
+        } else if (data['download_url'] != null) {
+          downloadUrl = data['download_url'];
+        }
+
+        // Prova campo 'links' (formato comune per Facebook)
+        if (downloadUrl == null && data['links'] != null) {
+          if (data['links'] is List && (data['links'] as List).isNotEmpty) {
+            downloadUrl = (data['links'] as List).first['url']?.toString();
+          } else if (data['links'] is Map) {
+            final links = data['links'] as Map;
+            downloadUrl = links['sd']?.toString() ?? links['hd']?.toString() ?? links['download']?.toString();
+          }
+        }
 
         // contents è un ARRAY, non un oggetto
         final contentsList = data['contents'];
@@ -283,10 +354,19 @@ class DownloadService {
         }
 
         if (downloadUrl != null) {
-          debugPrint('SMVD: SUCCESS - Got proxy download URL');
+          // Cerca audio separato se disponibile
+          String? audioUrl;
+          if (contentsList[0]['audios'] != null) {
+            final audios = contentsList[0]['audios'] as List?;
+            if (audios != null && audios.isNotEmpty) {
+              audioUrl = audios.first['url']?.toString();
+            }
+          }
+          debugPrint('SMVD: SUCCESS - Got proxy download URL, audioUrl=${audioUrl != null}');
           return {
             'success': true,
             'downloadUrl': downloadUrl,
+            'audioUrl': audioUrl,
             'filename': title ?? 'video',
             'server': 'SMVD (proxy)',
           };
@@ -708,8 +788,6 @@ class DownloadService {
             'User-Agent': 'Mozilla/5.0 (Linux; Android 15; Pixel 8 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
             'Accept': '*/*',
             'Accept-Language': 'en-US,en;q=0.9',
-            'Referer': 'https://www.youtube.com/',
-            'Origin': 'https://www.youtube.com',
           },
         ),
       );
@@ -746,6 +824,21 @@ class DownloadService {
     final extension = audioOnly ? 'mp3' : 'mp4';
     final fileName = '$title.$extension';
 
+    // Se c'e' audio separato, scarica entrambi e uniscili con FFmpeg
+    final audioUrl = result['audioUrl'] as String?;
+    if (!audioOnly && audioUrl != null) {
+      debugPrint('Download: Video+Audio separati, scarico e unisco con FFmpeg');
+      await _downloadAndMerge(
+        videoUrl: result['downloadUrl'],
+        audioUrl: audioUrl,
+        fileName: fileName,
+        onProgress: onProgress,
+        onComplete: onComplete,
+        onError: onError,
+      );
+      return;
+    }
+
     await downloadFile(
       url: result['downloadUrl'],
       fileName: fileName,
@@ -753,6 +846,91 @@ class DownloadService {
       onComplete: onComplete,
       onError: onError,
     );
+  }
+
+  static const _muxerChannel = MethodChannel('com.quicksave.quicksave_app/muxer');
+
+  /// Scarica video e audio separatamente e li unisce con Android MediaMuxer
+  Future<void> _downloadAndMerge({
+    required String videoUrl,
+    required String audioUrl,
+    required String fileName,
+    required Function(int received, int total) onProgress,
+    required Function(String filePath) onComplete,
+    required Function(String error) onError,
+  }) async {
+    try {
+      final hasPermission = await requestPermissions();
+      if (!hasPermission) {
+        onError('Permesso di storage negato');
+        return;
+      }
+
+      final savePath = await _downloadPath;
+      final cleanFileName = fileName.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_');
+      final ts = DateTime.now().millisecondsSinceEpoch;
+      final tempVideoPath = '$savePath/.temp_video_$ts.mp4';
+      final tempAudioPath = '$savePath/.temp_audio_$ts.m4a';
+      final finalPath = '$savePath/$cleanFileName';
+
+      final dlOptions = Options(
+        receiveTimeout: const Duration(minutes: 30),
+        sendTimeout: const Duration(minutes: 5),
+        followRedirects: true,
+        maxRedirects: 10,
+        validateStatus: (status) => status != null && status < 400,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Linux; Android 15; Pixel 8 Pro) AppleWebKit/537.36',
+          'Accept': '*/*',
+        },
+      );
+
+      // 1. Scarica video (mostra progresso)
+      debugPrint('Muxer: Downloading video...');
+      await _dio.download(
+        videoUrl,
+        tempVideoPath,
+        onReceiveProgress: (received, total) {
+          if (total != -1) {
+            onProgress((received * 0.9).toInt(), total);
+          } else {
+            onProgress(received, -1);
+          }
+        },
+        options: dlOptions,
+      );
+
+      // 2. Scarica audio (piccolo, veloce)
+      debugPrint('Muxer: Downloading audio...');
+      await _dio.download(
+        audioUrl,
+        tempAudioPath,
+        options: dlOptions,
+      );
+
+      // 3. Unisci con Android MediaMuxer (nativo, velocissimo)
+      debugPrint('Muxer: Merging video + audio...');
+      final result = await _muxerChannel.invokeMethod<bool>('muxVideoAudio', {
+        'videoPath': tempVideoPath,
+        'audioPath': tempAudioPath,
+        'outputPath': finalPath,
+      });
+
+      // 4. Pulizia file temporanei
+      try { await File(tempVideoPath).delete(); } catch (_) {}
+      try { await File(tempAudioPath).delete(); } catch (_) {}
+
+      if (result == true) {
+        debugPrint('Muxer: SUCCESS');
+        onComplete(finalPath);
+      } else {
+        debugPrint('Muxer: FAILED');
+        onError('Errore nel merge video+audio');
+      }
+    } catch (e) {
+      debugPrint('Muxer exception: $e');
+      onError(e.toString());
+    }
   }
 
   /// Ottiene informazioni sul video

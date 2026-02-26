@@ -341,6 +341,14 @@ class _BrowserScreenState extends State<BrowserScreen> {
                     onWebViewCreated: (controller) {
                       _webViewController = controller;
                     },
+                    shouldOverrideUrlLoading: (controller, navigationAction) async {
+                      final url = navigationAction.request.url?.toString() ?? '';
+                      // Blocca URL con schema non-standard (es. sfbfi://, intent://, fb://)
+                      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                        return NavigationActionPolicy.CANCEL;
+                      }
+                      return NavigationActionPolicy.ALLOW;
+                    },
                     onLoadStart: (controller, url) {
                       setState(() {
                         _isLoading = true;
