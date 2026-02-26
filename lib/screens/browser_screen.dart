@@ -374,30 +374,44 @@ class _BrowserScreenState extends State<BrowserScreen> {
                       right: 16,
                       child: GestureDetector(
                         onTap: _showDownloadPopup,
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: _isVideoUrl(_currentUrl)
-                                  ? [const Color(0xFFEA580C), const Color(0xFFF97316)]
-                                  : [const Color(0xFFEA580C).withOpacity(0.7), const Color(0xFFF97316).withOpacity(0.7)],
-                            ),
-                            borderRadius: BorderRadius.circular(18),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFFEA580C).withValues(alpha: 0.5),
-                                blurRadius: 20,
-                                offset: const Offset(0, 8),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: _isVideoUrl(_currentUrl)
+                                      ? [const Color(0xFFEA580C), const Color(0xFFF97316)]
+                                      : [const Color(0xFFEA580C).withOpacity(0.7), const Color(0xFFF97316).withOpacity(0.7)],
+                                ),
+                                borderRadius: BorderRadius.circular(18),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFFEA580C).withValues(alpha: 0.5),
+                                    blurRadius: 20,
+                                    offset: const Offset(0, 8),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.download_rounded,
-                            color: Colors.white,
-                            size: 30,
-                          ),
+                              child: const Icon(
+                                Icons.download_rounded,
+                                color: Colors.white,
+                                size: 30,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              'Download',
+                              style: TextStyle(
+                                color: Color(0xFFEA580C),
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
