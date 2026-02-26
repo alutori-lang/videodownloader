@@ -98,38 +98,87 @@ class _BrowserScreenState extends State<BrowserScreen> {
     // Prova a ottenere l'URL reale del video tramite JavaScript
     String videoUrl = _currentUrl;
 
+    debugPrint('Download popup: Current URL is $videoUrl');
+
+    // Controlla se siamo su una pagina video
+    if (!_isVideoUrl(videoUrl)) {
+      // Mostra errore se non siamo su una pagina video
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Vai su un video per scaricarlo'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
+    }
+
     if (_webViewController != null && _currentUrl.contains('youtube')) {
       try {
         // Prova a ottenere l'URL canonico o il video ID dalla pagina
         final result = await _webViewController!.evaluateJavascript(source: '''
           (function() {
-            // Prova canonical URL
+            // 1. Prova URL corrente se contiene v= o shorts/
+            var url = window.location.href;
+            if (url.includes('v=') || url.includes('/shorts/') || url.includes('youtu.be/')) {
+              return url;
+            }
+
+            // 2. Prova canonical URL
             var canonical = document.querySelector('link[rel="canonical"]');
-            if (canonical && canonical.href) return canonical.href;
+            if (canonical && canonical.href && canonical.href.includes('watch')) {
+              return canonical.href;
+            }
 
-            // Prova og:url
+            // 3. Prova og:url
             var ogUrl = document.querySelector('meta[property="og:url"]');
-            if (ogUrl && ogUrl.content) return ogUrl.content;
+            if (ogUrl && ogUrl.content && ogUrl.content.includes('watch')) {
+              return ogUrl.content;
+            }
 
-            // Prova a trovare video ID nei player
+            // 4. Prova a trovare video ID nel player (mobile YouTube)
             var videoId = null;
-            var scripts = document.getElementsByTagName('script');
-            for (var i = 0; i < scripts.length; i++) {
-              var match = scripts[i].textContent.match(/"videoId":"([^"]+)"/);
-              if (match) {
-                videoId = match[1];
-                break;
+
+            // Cerca nei data attributes
+            var player = document.querySelector('[data-video-id]');
+            if (player) {
+              videoId = player.getAttribute('data-video-id');
+            }
+
+            // Cerca negli script inline
+            if (!videoId) {
+              var pageSource = document.documentElement.innerHTML;
+              var matches = pageSource.match(/"videoId"\\s*:\\s*"([A-Za-z0-9_-]{11})"/);
+              if (matches) videoId = matches[1];
+            }
+
+            // Cerca nell'URL embedded
+            if (!videoId) {
+              var embeds = document.querySelectorAll('iframe[src*="youtube"]');
+              for (var i = 0; i < embeds.length; i++) {
+                var src = embeds[i].src;
+                var m = src.match(/embed\\/([A-Za-z0-9_-]{11})/);
+                if (m) {
+                  videoId = m[1];
+                  break;
+                }
               }
             }
+
             if (videoId) return 'https://www.youtube.com/watch?v=' + videoId;
 
             // Fallback: URL corrente
-            return window.location.href;
+            return url;
           })();
         ''');
 
         if (result != null && result.toString().isNotEmpty && result.toString() != 'null') {
-          videoUrl = result.toString().replaceAll('"', '');
+          final extracted = result.toString().replaceAll('"', '');
+          if (extracted.contains('v=') || extracted.contains('/shorts/') || extracted.contains('youtu.be/')) {
+            videoUrl = extracted;
+            debugPrint('Download popup: Extracted video URL: $videoUrl');
+          }
         }
       } catch (e) {
         // Se fallisce, usa l'URL corrente
@@ -300,6 +349,15 @@ class _BrowserScreenState extends State<BrowserScreen> {
                       setState(() {
                         _pageTitle = title ?? '';
                       });
+                    },
+                    // IMPORTANTE: Cattura navigazione SPA (YouTube mobile)
+                    onUpdateVisitedHistory: (controller, url, isReload) {
+                      if (url != null) {
+                        setState(() {
+                          _currentUrl = url.toString();
+                        });
+                        debugPrint('URL updated (SPA): $_currentUrl');
+                      }
                     },
                     onProgressChanged: (controller, progress) {
                       setState(() {
