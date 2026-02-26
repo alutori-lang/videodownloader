@@ -18,27 +18,15 @@ class DownloadService {
   // RapidAPI YouTube Download APIs
   static const String _rapidApiKey = 'd035b280a2mshd434ef0a92fe5a0p16241ejsn8190525f7a4e';
 
-  // Multiple RapidAPI hosts to try - VERIFIED WORKING ENDPOINTS
+  // SMVD API - Social Media Video Downloader (ha URL PROXY che funzionano!)
+  static const String _smvdHost = 'social-media-video-downloader.p.rapidapi.com';
+
+  // Fallback RapidAPI hosts (URL diretti, possono dare 403)
   static const List<Map<String, String>> _rapidApiHosts = [
-    // 1. YTStream - endpoint /dl con parametro id
     {
       'host': 'ytstream-download-youtube-videos.p.rapidapi.com',
       'downloadEndpoint': '/dl',
       'videoParam': 'id',
-      'useVideoId': 'true',
-    },
-    // 2. YouTube Video Download API - endpoint / con parametro url (URL completo)
-    {
-      'host': 'youtube-video-download-api1.p.rapidapi.com',
-      'downloadEndpoint': '/',
-      'videoParam': 'url',
-      'useFullUrl': 'true',
-    },
-    // 3. YouTube Media Downloader - endpoint /v2/video/details
-    {
-      'host': 'youtube-media-downloader.p.rapidapi.com',
-      'downloadEndpoint': '/v2/video/details',
-      'videoParam': 'videoId',
       'useVideoId': 'true',
     },
   ];
@@ -130,7 +118,18 @@ class DownloadService {
   }) async {
     debugPrint('Download: Trying to get download URL for: $url');
 
-    // 1. Prima prova RapidAPI (se configurata)
+    // 1. PRIMO: Prova SMVD (Social Media Video Downloader) - ha URL PROXY
+    debugPrint('Download: Trying SMVD (proxy)...');
+    final smvdResult = await _trySmvdApi(
+      videoUrl: url,
+      audioOnly: audioOnly,
+    );
+    if (smvdResult != null && smvdResult['success'] == true) {
+      debugPrint('Download: Success with SMVD proxy!');
+      return smvdResult;
+    }
+
+    // 2. Poi prova altre RapidAPI
     if (_rapidApiKey != 'YOUR_RAPIDAPI_KEY_HERE') {
       debugPrint('Download: Trying RapidAPI...');
       final rapidResult = await _tryRapidApi(
@@ -165,6 +164,105 @@ class DownloadService {
       'success': false,
       'error': 'Tutti i server sono offline. Riprova più tardi.',
     };
+  }
+
+  /// Prova SMVD API - Social Media Video Downloader (URL PROXY!)
+  Future<Map<String, dynamic>?> _trySmvdApi({
+    required String videoUrl,
+    required bool audioOnly,
+  }) async {
+    try {
+      // Estrai video ID
+      String? videoId;
+      final uri = Uri.parse(videoUrl);
+      if (videoUrl.contains('youtu.be/')) {
+        videoId = uri.pathSegments.isNotEmpty ? uri.pathSegments.last.split('?').first : null;
+      } else if (videoUrl.contains('youtube.com')) {
+        videoId = uri.queryParameters['v'];
+      }
+
+      if (videoId == null || videoId.isEmpty) {
+        debugPrint('SMVD: Could not extract video ID');
+        return null;
+      }
+
+      debugPrint('SMVD: Trying with video ID: $videoId');
+
+      final response = await _dio.get(
+        'https://$_smvdHost/youtube/v3/video/details',
+        queryParameters: {
+          'videoId': videoId,
+          'renderableFormats': '720p,360p',
+          'urlAccess': 'proxied',
+          'getTranscript': 'false',
+        },
+        options: Options(
+          headers: {
+            'x-rapidapi-key': _rapidApiKey,
+            'x-rapidapi-host': _smvdHost,
+          },
+          sendTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(seconds: 30),
+          validateStatus: (status) => status != null && status < 500,
+        ),
+      );
+
+      debugPrint('SMVD: Status ${response.statusCode}');
+
+      if (response.statusCode == 200 && response.data != null) {
+        final data = response.data;
+        String? downloadUrl;
+        String? title;
+
+        // Cerca nei video con proxy URL
+        if (data['contents'] != null) {
+          final contents = data['contents'];
+
+          // Audio
+          if (audioOnly && contents['audios'] != null) {
+            final audios = contents['audios'] as List?;
+            if (audios != null && audios.isNotEmpty) {
+              downloadUrl = audios.first['url'];
+            }
+          }
+
+          // Video
+          if (downloadUrl == null && contents['videos'] != null) {
+            final videos = contents['videos'] as List?;
+            if (videos != null && videos.isNotEmpty) {
+              // Cerca 720p o 360p (formati con audio+video)
+              for (final v in videos) {
+                final hasAudio = v['metadata']?['has_audio'] == true;
+                final label = v['label']?.toString() ?? '';
+                if (hasAudio) {
+                  downloadUrl = v['url'];
+                  break;
+                }
+              }
+              // Se nessun video ha audio, prendi il primo
+              downloadUrl ??= videos.first['url'];
+            }
+          }
+
+          title = data['title'] ?? contents['title'];
+        }
+
+        if (downloadUrl != null) {
+          debugPrint('SMVD: SUCCESS - Got proxy download URL');
+          return {
+            'success': true,
+            'downloadUrl': downloadUrl,
+            'filename': title ?? 'video',
+            'server': 'SMVD (proxy)',
+          };
+        }
+      }
+
+      return null;
+    } catch (e) {
+      debugPrint('SMVD exception: $e');
+      return null;
+    }
   }
 
   /// Prova RapidAPI YouTube Download con fallback su più host
