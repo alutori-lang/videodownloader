@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1 Click Video Download - Scarica Video da Tutti i Social</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: white;
+            min-height: 100vh;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 60px 20px 40px;
+        }
+
+        .app-icon {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, #EA580C, #F97316);
+            border-radius: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            box-shadow: 0 20px 40px rgba(234, 88, 12, 0.3);
+        }
+
+        .app-icon svg {
+            width: 60px;
+            height: 60px;
+            fill: white;
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            background: linear-gradient(to right, #F97316, #FB923C);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 18px;
+            color: #94a3b8;
+            margin-bottom: 32px;
+        }
+
+        .download-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #EA580C, #F97316);
+            color: white;
+            text-decoration: none;
+            padding: 18px 48px;
+            border-radius: 50px;
+            font-size: 20px;
+            font-weight: 700;
+            box-shadow: 0 12px 30px rgba(234, 88, 12, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 16px 40px rgba(234, 88, 12, 0.5);
+        }
+
+        .version {
+            margin-top: 12px;
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .features {
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .feature {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 20px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            margin-bottom: 12px;
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            min-width: 48px;
+            background: rgba(234, 88, 12, 0.15);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .feature-text h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .feature-text p {
+            font-size: 13px;
+            color: #94a3b8;
+        }
+
+        .platforms {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .platforms h2 {
+            font-size: 22px;
+            margin-bottom: 24px;
+        }
+
+        .platform-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .platform-tag {
+            background: rgba(255,255,255,0.08);
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 40px 20px;
+            color: #64748b;
+            font-size: 13px;
+        }
+
+        .steps {
+            max-width: 600px;
+            margin: 20px auto 40px;
+            padding: 0 20px;
+            text-align: center;
+        }
+
+        .steps h2 {
+            font-size: 22px;
+            margin-bottom: 24px;
+        }
+
+        .step-grid {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .step {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 20px;
+            width: 160px;
+            text-align: center;
+        }
+
+        .step-num {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #EA580C, #F97316);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            margin: 0 auto 10px;
+        }
+
+        .step p {
+            font-size: 14px;
+            color: #cbd5e1;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="hero">
+        <div class="app-icon">
+            <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+        </div>
+        <h1>1 Click Video Download</h1>
+        <p class="subtitle">Scarica video da tutti i social in un click</p>
+        <a href="https://github.com/alutori-lang/videodownloader/releases/latest/download/app-release.apk" class="download-btn">
+            Scarica APK Gratis
+        </a>
+        <p class="version">v1.0.0 | Android 7.0+</p>
+    </div>
+
+    <div class="features">
+        <div class="feature">
+            <div class="feature-icon">1</div>
+            <div class="feature-text">
+                <h3>1 Click Download</h3>
+                <p>Naviga, trova il video, premi il pulsante arancione. Fatto!</p>
+            </div>
+        </div>
+        <div class="feature">
+            <div class="feature-icon">HD</div>
+            <div class="feature-text">
+                <h3>Alta Qualita</h3>
+                <p>Scarica in 360p, 720p o 1080p Full HD</p>
+            </div>
+        </div>
+        <div class="feature">
+            <div class="feature-icon">&#9889;</div>
+            <div class="feature-text">
+                <h3>Download Veloce</h3>
+                <p>Barra di progresso in tempo reale con MB scaricati</p>
+            </div>
+        </div>
+        <div class="feature">
+            <div class="feature-icon">&#127760;</div>
+            <div class="feature-text">
+                <h3>Browser Integrato</h3>
+                <p>Non serve copiare link. Naviga e scarica direttamente</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="platforms">
+        <h2>Piattaforme Supportate</h2>
+        <div class="platform-grid">
+            <span class="platform-tag">YouTube</span>
+            <span class="platform-tag">Instagram</span>
+            <span class="platform-tag">TikTok</span>
+            <span class="platform-tag">Facebook</span>
+            <span class="platform-tag">Twitter / X</span>
+            <span class="platform-tag">Reddit</span>
+            <span class="platform-tag">Pinterest</span>
+            <span class="platform-tag">Vimeo</span>
+        </div>
+    </div>
+
+    <div class="steps">
+        <h2>Come Funziona</h2>
+        <div class="step-grid">
+            <div class="step">
+                <div class="step-num">1</div>
+                <p>Apri l'app e vai sul social</p>
+            </div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <p>Trova il video che vuoi</p>
+            </div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <p>Premi Download e scarica!</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>&copy; 2026 1 Click Video Download. Tutti i diritti riservati.</p>
+        <p style="margin-top: 8px;">Questa app non e affiliata con YouTube, Instagram, TikTok o altri servizi.</p>
+    </div>
+
+</body>
+</html>
