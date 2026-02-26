@@ -6,6 +6,7 @@ import '../providers/download_provider.dart';
 import '../models/download_item.dart';
 import '../widgets/download_popup.dart';
 import '../l10n/app_localizations.dart';
+import '../services/ads_service.dart';
 
 class BrowserScreen extends StatefulWidget {
   final String initialUrl;
@@ -208,7 +209,12 @@ class _BrowserScreenState extends State<BrowserScreen> {
     );
   }
 
-  void _startDownload(String format, String quality, String videoUrl) {
+  void _startDownload(String format, String quality, String videoUrl) async {
+    // Mostra interstitial ogni 3 download
+    await AdsService().showInterstitialIfReady();
+
+    if (!mounted) return;
+
     final provider = Provider.of<DownloadProvider>(context, listen: false);
 
     // Converte la qualità nel formato Cobalt (es. "1080p" -> "1080")

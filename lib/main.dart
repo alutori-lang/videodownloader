@@ -5,8 +5,9 @@ import 'package:provider/provider.dart';
 import 'providers/download_provider.dart';
 import 'screens/main_screen.dart';
 import 'l10n/app_localizations.dart';
+import 'services/ads_service.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -14,6 +15,7 @@ void main() {
       statusBarIconBrightness: Brightness.dark,
     ),
   );
+  await AdsService().initialize();
   runApp(const QuickSaveApp());
 }
 

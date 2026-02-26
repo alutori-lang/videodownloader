@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'browser_screen.dart';
 import '../l10n/app_localizations.dart';
+import '../services/ads_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -12,6 +14,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _urlController = TextEditingController();
+  BannerAd? _bannerAd;
+  bool _isBannerLoaded = false;
 
   final List<Map<String, dynamic>> _platforms = [
     {'name': 'YouTube', 'icon': Icons.play_circle_fill, 'color': const Color(0xFFFF0000), 'url': 'https://www.youtube.com'},
@@ -23,6 +27,23 @@ class _HomeScreenState extends State<HomeScreen> {
     {'name': 'Vimeo', 'icon': Icons.videocam, 'color': const Color(0xFF1AB7EA), 'url': 'https://www.vimeo.com'},
     {'name': 'SoundCloud', 'icon': Icons.cloud, 'color': const Color(0xFFFF5500), 'url': 'https://www.soundcloud.com'},
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBannerAd();
+  }
+
+  void _loadBannerAd() {
+    _bannerAd = AdsService().createBannerAd();
+    _bannerAd!.load().then((_) {
+      if (mounted) {
+        setState(() {
+          _isBannerLoaded = true;
+        });
+      }
+    });
+  }
 
   void _pasteFromClipboard() async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
@@ -52,6 +73,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _urlController.dispose();
+    _bannerAd?.dispose();
     super.dispose();
   }
 
@@ -61,11 +83,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
               // Header
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -298,8 +323,19 @@ class _HomeScreenState extends State<HomeScreen> {
                   );
                 },
               ),
-            ],
-          ),
+                  ],
+                ),
+              ),
+            ),
+            // Banner Ad
+            if (_isBannerLoaded && _bannerAd != null)
+              Container(
+                width: double.infinity,
+                height: _bannerAd!.size.height.toDouble(),
+                color: const Color(0xFFFFF7ED),
+                child: AdWidget(ad: _bannerAd!),
+              ),
+          ],
         ),
       ),
     );

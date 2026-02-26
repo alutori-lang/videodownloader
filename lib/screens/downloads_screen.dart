@@ -2,12 +2,41 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../providers/download_provider.dart';
 import '../models/download_item.dart';
 import '../l10n/app_localizations.dart';
+import '../services/ads_service.dart';
 
-class DownloadsScreen extends StatelessWidget {
+class DownloadsScreen extends StatefulWidget {
   const DownloadsScreen({super.key});
+
+  @override
+  State<DownloadsScreen> createState() => _DownloadsScreenState();
+}
+
+class _DownloadsScreenState extends State<DownloadsScreen> {
+  BannerAd? _bannerAd;
+  bool _isBannerLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _bannerAd = AdsService().createBannerAd();
+    _bannerAd!.load().then((_) {
+      if (mounted) {
+        setState(() {
+          _isBannerLoaded = true;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _bannerAd?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -106,6 +135,14 @@ class DownloadsScreen extends StatelessWidget {
                 },
               ),
             ),
+            // Banner Ad
+            if (_isBannerLoaded && _bannerAd != null)
+              Container(
+                width: double.infinity,
+                height: _bannerAd!.size.height.toDouble(),
+                color: const Color(0xFFFFF7ED),
+                child: AdWidget(ad: _bannerAd!),
+              ),
           ],
         ),
       ),
