@@ -212,11 +212,12 @@ class DownloadService {
       if (response.statusCode == 200 && response.data != null) {
         final data = response.data;
         String? downloadUrl;
-        String? title;
+        String? title = data['title'];
 
-        // Cerca nei video con proxy URL
-        if (data['contents'] != null) {
-          final contents = data['contents'];
+        // contents è un ARRAY, non un oggetto
+        final contentsList = data['contents'];
+        if (contentsList != null && contentsList is List && contentsList.isNotEmpty) {
+          final contents = contentsList[0];
 
           // Audio
           if (audioOnly && contents['audios'] != null) {
@@ -230,10 +231,9 @@ class DownloadService {
           if (downloadUrl == null && contents['videos'] != null) {
             final videos = contents['videos'] as List?;
             if (videos != null && videos.isNotEmpty) {
-              // Cerca 720p o 360p (formati con audio+video)
+              // Cerca formato con audio integrato
               for (final v in videos) {
                 final hasAudio = v['metadata']?['has_audio'] == true;
-                final label = v['label']?.toString() ?? '';
                 if (hasAudio) {
                   downloadUrl = v['url'];
                   break;
@@ -244,7 +244,7 @@ class DownloadService {
             }
           }
 
-          title = data['title'] ?? contents['title'];
+          title ??= contents['title'];
         }
 
         if (downloadUrl != null) {
