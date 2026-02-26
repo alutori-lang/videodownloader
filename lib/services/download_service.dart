@@ -192,7 +192,7 @@ class DownloadService {
         'https://$_smvdHost/youtube/v3/video/details',
         queryParameters: {
           'videoId': videoId,
-          'renderableFormats': '720p,360p',
+          'renderableFormats': '360p,720p',
           'urlAccess': 'proxied',
           'getTranscript': 'false',
         },
@@ -231,16 +231,51 @@ class DownloadService {
           if (downloadUrl == null && contents['videos'] != null) {
             final videos = contents['videos'] as List?;
             if (videos != null && videos.isNotEmpty) {
-              // Cerca formato con audio integrato
+              String? videoWithAudioUrl;
+              String? videoOnlyUrl;
+              String? audioOnlyUrl;
+
               for (final v in videos) {
-                final hasAudio = v['metadata']?['has_audio'] == true;
-                if (hasAudio) {
-                  downloadUrl = v['url'];
+                final url = v['url']?.toString();
+                if (url == null) continue;
+
+                // Controlla se ha audio integrato
+                final hasAudio = v['metadata']?['has_audio'] == true ||
+                    v['hasAudio'] == true ||
+                    v['audioChannels'] != null ||
+                    v['audioBitrate'] != null;
+
+                // Controlla dal mimeType se e' muxed (video+audio)
+                final mimeType = v['mimeType']?.toString() ?? v['metadata']?['mimeType']?.toString() ?? '';
+                final isMuxed = mimeType.contains('video/mp4') && !mimeType.contains('codecs="avc');
+
+                // Controlla qualita' - 360p e 720p progressive hanno audio
+                final quality = v['quality']?.toString() ?? v['metadata']?['quality']?.toString() ?? '';
+                final isLowQuality = quality.contains('360') || quality.contains('480') || quality.contains('720');
+
+                if (hasAudio || isMuxed) {
+                  videoWithAudioUrl = url;
                   break;
+                } else if (isLowQuality && videoWithAudioUrl == null) {
+                  // Le qualita' basse sono piu' probabili avere audio
+                  videoWithAudioUrl = url;
+                } else {
+                  videoOnlyUrl ??= url;
                 }
               }
-              // Se nessun video ha audio, prendi il primo
-              downloadUrl ??= videos.first['url'];
+
+              // Cerca anche audio separato da mixare dopo
+              if (contents['audios'] != null) {
+                final audios = contents['audios'] as List?;
+                if (audios != null && audios.isNotEmpty) {
+                  audioOnlyUrl = audios.first['url']?.toString();
+                }
+              }
+
+              // Preferisci video con audio, altrimenti usa video-only
+              downloadUrl = videoWithAudioUrl ?? videoOnlyUrl;
+
+              debugPrint('SMVD: videoWithAudio=${videoWithAudioUrl != null}, videoOnly=${videoOnlyUrl != null}, audioOnly=${audioOnlyUrl != null}');
             }
           }
 
